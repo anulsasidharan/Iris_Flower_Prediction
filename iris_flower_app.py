@@ -1,13 +1,24 @@
 import streamlit as st
 import time
 import joblib
+import numpy as np
 import pandas as pd
 from PIL import Image
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 
+
+# MongoDB connectivity
+uri = "mongodb+srv://anu:tiger@cluster0.57jxgvp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+# Create a new MongoDB client and connect to the Database server
+client = MongoClient(uri, server_api = ServerApi('1'))
+db = client['Iris']
+collection = db['Iris_Flower_data']
 
 # Step1: Module for Loading the required model
 def load_model(model_name):
@@ -137,6 +148,16 @@ def main():
 
             model_name =  model_mapping.get(model_choice, None)
 
+            # Map the model ID for storing it in MongoDB
+            model_ID_mapping = {
+                "SVM Binary": "SVM Binary",
+                "SVM Multiclass": "SVM Multiclass",
+                "Logistic Binary": "Logistic Binary",
+                "Logistic Multiclass OVR": "Logistic Multiclass OVR",
+                "Logistic Multiclass Multinomial": "Logistic Multiclass Multinomial",
+            }
+            model_ID = model_ID_mapping.get(model_choice, None)
+
 
             # Make Prediction
             def prediction():
@@ -147,6 +168,7 @@ def main():
                     return 'versicolor'
                 else:
                     return 'virginica'
+                    
                 
             # Dictionary mapping species to image path
             species_images = {
@@ -156,12 +178,20 @@ def main():
             }
 
             # Store data to MongoDB
+            species_name = prediction()
+            flower_data["Iris_Flower_predection_result"] = species_name
+            flower_data["Model Name"] = model_ID
+            st.markdown("**The processed input and predicted output:**")
+            st.write(flower_data)
+            document = {key: int(value) if isinstance(value,np.integer) else 
+                        float(value) if isinstance(value, np.floating) else
+                        value for key, value in flower_data.items()}
+            
+            collection.insert_one(document)
 
 
         # Display Result
-        # st.markdown(f"#### Iris Flower Species ")
-        species_name = prediction()
-        st.success(f"The Species is {species_name}")
+        st.success(f"The predicted Species is {species_name}")
 
         # Display corresponding image
         if species_name in species_images:
