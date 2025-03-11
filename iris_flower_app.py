@@ -3,6 +3,11 @@ import time
 import joblib
 import pandas as pd
 from PIL import Image
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+
 
 # Step1: Module for Loading the required model
 def load_model(model_name):
